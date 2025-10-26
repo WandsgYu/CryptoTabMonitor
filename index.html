@@ -45,53 +45,44 @@
     <!-- 新增：日期和时间显示 -->
     <div class="date-time date" id="current-date"></div>
     <div class="date-time time" id="current-time"></div>
-    <button id="big-mode-button" style="position: fixed; bottom: 10px; right: 120px; padding: 10px; z-index: 1001; border-radius: 5px; background-color: #333; color: white; border: none; cursor: pointer;">Big</button>
-    <button id="exit-big-mode-button" style="position: fixed; bottom: 10px; right: 120px; padding: 10px; z-index: 1001; border-radius: 5px; background-color: #555; color: white; border: none; cursor: pointer; display: none;">退出Big Mode</button>
+    <button id="big-mode-button" class="control-button big-mode-btn">Big</button>
+    <button id="exit-big-mode-button" class="control-button exit-big-mode-btn">退出Big Mode</button>
 
     <!-- 设置按钮 -->
-    <button id="settings-button" style="position: fixed; bottom: 10px; right: 10px; padding: 10px; z-index: 1001; border-radius: 5px; background-color: #333; color: white; border: none; cursor: pointer;">设置</button>
+    <button id="settings-button" class="control-button settings-btn">设置</button>
 
     <!-- 配置模态框 -->
-    <div id="settings-modal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
-      <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; /* Reduced top margin */ padding: 0; /* Removed padding, will add to inner content */ border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 10px; position: relative; display: flex; flex-direction: column; max-height: 90vh; /* Max height */">
-        <div class="modal-header" style="padding: 10px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-          <h2 style="margin: 0;">页面配置</h2>
-          <span id="close-settings-modal" class="close-button" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+    <div id="settings-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>页面配置</h2>
+          <span id="close-settings-modal" class="close-button">&times;</span>
         </div>
 
-        <div class="modal-body" style="padding: 20px; overflow-y: auto; /* Scrollable body */ flex-grow: 1;">
+        <div class="modal-body">
           <!-- 数量配置 -->
-          <div style="margin-bottom: 15px;">
-            <label for="display-count" style="display: block; margin-bottom: 5px;">显示数量：</label>
-            <select id="display-count" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+          <div class="form-group">
+            <label for="display-count">显示数量：</label>
+            <select id="display-count" class="form-control">
               <option value="1">1</option>
               <option value="4">4</option>
             </select>
           </div>
-          <hr style="margin: 15px 0;">
+          <hr class="form-divider">
 
           <!-- 币种设置 -->
-          <h3 style="margin-top: 0; margin-bottom: 10px;">币种设置（Bitget交易所的合约交易对）</h3>
+          <h3 class="section-title">币种设置（Bitget交易所的合约交易对）</h3>
           <div id="coin-settings-container">
             <!-- 币种条目将在这里动态添加 -->
-            <!-- 示例条目 (将在JS中动态生成) -->
-            <!-- 
-            <div class="coin-setting-item" style="display: flex; align-items: center; margin-bottom: 10px;">
-              <input type="number" class="coin-order" placeholder="顺序" style="width: 60px; margin-right: 5px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" value="1" min="1">
-              <input type="text" class="coin-name" placeholder="直接输入名称 (例如 BTC、BGB、ETH、SOL、BNB、DOGE、UNI、SUI、TRUMP、PNUT、MEME、SHIB)" style="flex-grow: 1; margin-right: 5px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-              <input type="number" class="coin-precision" placeholder="精度" style="width: 60px; margin-right: 5px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" value="2" min="0">
-              <button class="remove-coin-button" style="padding: 8px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">移除</button>
-            </div>
-             -->
           </div>
-          <button id="add-coin-button" style="padding: 10px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">添加币种</button>
+          <button id="add-coin-button" class="btn btn-success">添加币种</button>
           
-          <hr style="margin: 15px 0;">
+          <hr class="form-divider">
 
           <!-- 交易格言配置 -->
-          <div style="margin-bottom: 15px;">
-            <label for="trading-motto-select" style="display: block; margin-bottom: 5px;">交易格言：</label>
-            <select id="trading-motto-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 5px;">
+          <div class="form-group">
+            <label for="trading-motto-select">交易格言：</label>
+            <select id="trading-motto-select" class="form-control">
               <option value="Trust your judgment.">Trust your judgment.</option>
               <option value="市场永远是对的">市场永远是对的</option>
               <option value="风险第一，利润第二">风险第一，利润第二</option>
@@ -111,32 +102,32 @@
               <option value="">留空</option> 
               <option value="custom">自定义...</option>
             </select>
-            <input type="text" id="trading-motto-custom" placeholder="输入自定义格言" style="width: calc(100% - 18px); padding: 8px; border-radius: 4px; border: 1px solid #ccc; display: none;">
+            <input type="text" id="trading-motto-custom" placeholder="输入自定义格言" class="form-control custom-input">
           </div>
-          <hr style="margin: 15px 0;">
+          <hr class="form-divider">
 
           <!-- 刷新间隔配置 -->
-          <div style="margin-bottom: 15px;">
-            <label for="refresh-interval" style="display: block; margin-bottom: 5px;">刷新间隔 (ms)：</label>
-            <input type="number" id="refresh-interval" value="1000" min="500" style="width: calc(100% - 22px); padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-            <small style="display: block; margin-top: 5px; color: #666;">默认1000ms，最低500ms</small>
+          <div class="form-group">
+            <label for="refresh-interval">刷新间隔 (秒)：</label>
+            <input type="number" id="refresh-interval" value="1" min="0.5" step="0.1" class="form-control">
+            <small class="form-help">默认1秒，最低0.5秒</small>
           </div>
-          <hr style="margin: 15px 0;">
+          <hr class="form-divider">
 
           <!-- 字号配置 -->
-          <div style="margin-bottom: 15px;">
-              <label for="price-font-size" style="display: block; margin-bottom: 5px;">价格字号 (px)：</label>
-              <input type="number" id="price-font-size" value="130" min="10" max="200" step="1" style="width: calc(100% - 22px); padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
+          <div class="form-group">
+              <label for="price-font-size">价格字号 (px)：</label>
+              <input type="number" id="price-font-size" value="130" min="10" max="200" step="1" class="form-control">
               
-              <label for="big-mode-font-size" style="display: block; margin-bottom: 5px;">Big Mode 字号 (px)：</label>
-              <input type="number" id="big-mode-font-size" value="222" min="20" max="400" step="1" style="width: calc(100% - 22px); padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-              <small style="display: block; margin-top: 5px; color: #666;">输入数字，单位为像素(px)</small>
+              <label for="big-mode-font-size">Big Mode 字号 (px)：</label>
+              <input type="number" id="big-mode-font-size" value="222" min="20" max="400" step="1" class="form-control">
+              <small class="form-help">输入数字，单位为像素(px)</small>
           </div>
         </div> 
 
-        <div class="modal-footer" style="padding: 15px 20px; border-top: 1px solid #eee; text-align: right;">
-            <button id="save-settings-button" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">保存配置</button>
-            <button id="reset-settings-button" style="padding: 10px 20px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">恢复默认</button>
+        <div class="modal-footer">
+            <button id="save-settings-button" class="btn btn-primary">保存配置</button>
+            <button id="reset-settings-button" class="btn btn-secondary">恢复默认</button>
         </div>
       </div>
     </div>
