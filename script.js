@@ -27,12 +27,12 @@ document.addEventListener("DOMContentLoaded", function () {
   const defaultSettings = {
     displayCount: 4,
     coins: [
-      { order: 1, name: "BTC", precision: 0 },
-      { order: 2, name: "ETH", precision: 2 },
-      { order: 3, name: "SOL", precision: 2 },
-      { order: 4, name: "BNB", precision: 2 },
+      { order: 1, name: "BTC", precision: 0, dataSource: "gate" },
+      { order: 2, name: "ETH", precision: 2, dataSource: "gate" },
+      { order: 3, name: "SOL", precision: 2, dataSource: "gate" },
+      { order: 4, name: "BNB", precision: 2, dataSource: "gate" },
     ],
-    refreshInterval: 1,
+    refreshInterval: 5000,
     tradingMotto: "",
     priceFontSize: 130,
     bigModePriceFontSize: 222,
@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (elements.closeSettingsModalButton) elements.closeSettingsModalButton.addEventListener('click', closeSettingsModal);
 
   // --- Coin Settings Management ---
-  function createCoinSettingItem(coin = { name: '', precision: 2 }, order = 1) {
+  function createCoinSettingItem(coin = { name: '', precision: 2, dataSource: 'gate' }, order = 1) {
     const itemDiv = document.createElement('div');
     itemDiv.classList.add('coin-setting-item');
 
@@ -74,6 +74,26 @@ document.addEventListener("DOMContentLoaded", function () {
     precisionInput.placeholder = '精度';
     precisionInput.value = coin.precision;
     precisionInput.min = 0;
+
+    const dataSourceSelect = document.createElement('select');
+    dataSourceSelect.classList.add('coin-data-source', 'form-control');
+    
+    const gateOption = document.createElement('option');
+    gateOption.value = 'gate';
+    gateOption.textContent = 'Gate.io';
+    if (coin.dataSource === 'gate' || !coin.dataSource) {
+      gateOption.selected = true;
+    }
+    
+    const bybitOption = document.createElement('option');
+    bybitOption.value = 'bybit';
+    bybitOption.textContent = 'Bybit';
+    if (coin.dataSource === 'bybit') {
+      bybitOption.selected = true;
+    }
+    
+    dataSourceSelect.appendChild(gateOption);
+    dataSourceSelect.appendChild(bybitOption);
     
     const removeButton = document.createElement('button');
     removeButton.classList.add('remove-coin-button');
@@ -86,6 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
     itemDiv.appendChild(orderDisplay);
     itemDiv.appendChild(nameInput);
     itemDiv.appendChild(precisionInput);
+    itemDiv.appendChild(dataSourceSelect);
     itemDiv.appendChild(removeButton);
     return itemDiv;
   }
@@ -130,7 +151,7 @@ document.addEventListener("DOMContentLoaded", function () {
     } else if (currentItemCount < targetCount) {
       for (let i = currentItemCount; i < targetCount; i++) {
         // Create a new empty coin object or with defaults for adding
-        const defaultCoinForNewRow = { name: '', precision: 2 }; 
+        const defaultCoinForNewRow = { name: '', precision: 2, dataSource: 'gate' }; 
         addCoinSetting(defaultCoinForNewRow);
       }
     }
@@ -163,7 +184,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function loadSettingsToUI() {
     elements.displayCountSelect.value = currentSettings.displayCount;
-    elements.refreshIntervalInput.value = (currentSettings.refreshInterval / 1000).toFixed(1); // 将毫秒转换为秒
+    // 如果刷新间隔是毫秒，转换为秒；如果已经是秒，直接使用
+    const intervalInSeconds = currentSettings.refreshInterval >= 1000 
+      ? (currentSettings.refreshInterval / 1000).toFixed(1) 
+      : currentSettings.refreshInterval;
+    elements.refreshIntervalInput.value = intervalInSeconds;
     elements.priceFontSizeInput.value = currentSettings.priceFontSize || defaultSettings.priceFontSize;
     elements.bigModeFontSizeInput.value = currentSettings.bigModePriceFontSize || defaultSettings.bigModePriceFontSize;
 
@@ -205,7 +230,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function saveSettingsFromUI() {
     const newDisplayCount = parseInt(elements.displayCountSelect.value, 10);
-    const newRefreshInterval = parseFloat(elements.refreshIntervalInput.value) * 1000; // 将秒转换为毫秒
+    // 如果输入的值小于1000，认为是秒，需要转换为毫秒；否则认为是毫秒
+    const inputValue = parseFloat(elements.refreshIntervalInput.value);
+    const newRefreshInterval = inputValue < 1000 ? inputValue * 1000 : inputValue;
     const newPriceFontSize = parseInt(elements.priceFontSizeInput.value, 10) || defaultSettings.priceFontSize;
     const newBigModePriceFontSize = parseInt(elements.bigModeFontSizeInput.value, 10) || defaultSettings.bigModePriceFontSize;
 
@@ -224,8 +251,10 @@ document.addEventListener("DOMContentLoaded", function () {
       const order = index + 1;
       const name = item.querySelector('.coin-name').value.trim().toUpperCase();
       const precision = parseInt(item.querySelector('.coin-precision').value, 10);
+      const dataSourceSelect = item.querySelector('.coin-data-source');
+      const dataSource = dataSourceSelect ? dataSourceSelect.value : 'gate';
       if (name) { 
-        newCoins.push({ order, name, precision });
+        newCoins.push({ order, name, precision, dataSource });
       }
     });
 
@@ -268,6 +297,12 @@ document.addEventListener("DOMContentLoaded", function () {
       currentSettings.tradingMotto = currentSettings.tradingMotto !== undefined ? currentSettings.tradingMotto : defaultSettings.tradingMotto;
       currentSettings.priceFontSize = currentSettings.priceFontSize || defaultSettings.priceFontSize;
       currentSettings.bigModePriceFontSize = currentSettings.bigModePriceFontSize || defaultSettings.bigModePriceFontSize;
+      // 确保每个币种都有数据源字段
+      currentSettings.coins.forEach(coin => {
+        if (!coin.dataSource) {
+          coin.dataSource = 'gate';
+        }
+      });
       currentSettings.coins.sort((a, b) => a.order - b.order);
       // Ensure display count from settings doesn't exceed new max of 4
       if (currentSettings.displayCount > 4) {
@@ -365,30 +400,58 @@ document.addEventListener("DOMContentLoaded", function () {
   setInterval(updateDateTime, 1000);
   updateDateTime();
 
-  async function fetchPrice(symbol) {
+  async function fetchPrice(symbol, dataSource = 'gate') {
     try {
-      const response = await fetch(`${apiUrlBase}${symbol}_USDT`);
-      if (!response.ok) {
-        console.error(`Error fetching price for ${symbol}: ${response.status} ${response.statusText}`);
-        return null;
-      }
-      const data = await response.json();
+      let url, price;
       
-      // Gate.io API 返回数组格式，检查是否有数据
-      if (!Array.isArray(data) || data.length === 0) {
-        console.warn(`No price data found for ${symbol} in API response:`, data);
-        return null;
+      if (dataSource === 'bybit') {
+        // Bybit API: https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}USDT
+        url = `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}USDT`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error(`Error fetching price for ${symbol} from Bybit: ${response.status} ${response.statusText}`);
+          return null;
+        }
+        const data = await response.json();
+        
+        if (data.retCode === 0 && data.result && data.result.list && data.result.list.length > 0) {
+          const ticker = data.result.list[0];
+          price = parseFloat(ticker.lastPrice);
+          if (isNaN(price)) {
+            console.warn(`Invalid price data for ${symbol} from Bybit:`, ticker);
+            return null;
+          }
+          return price;
+        } else {
+          console.warn(`No price data found for ${symbol} in Bybit API response:`, data);
+          return null;
+        }
+      } else {
+        // Gate.io API (默认)
+        url = `${apiUrlBase}${symbol}_USDT`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error(`Error fetching price for ${symbol} from Gate.io: ${response.status} ${response.statusText}`);
+          return null;
+        }
+        const data = await response.json();
+        
+        // Gate.io API 返回数组格式，检查是否有数据
+        if (!Array.isArray(data) || data.length === 0) {
+          console.warn(`No price data found for ${symbol} in Gate.io API response:`, data);
+          return null;
+        }
+        
+        const tickerData = data[0];
+        if (!tickerData || tickerData.last === undefined) {
+          console.warn(`Price data not found for ${symbol} in Gate.io API response:`, tickerData);
+          return null;
+        }
+        
+        return parseFloat(tickerData.last);
       }
-      
-      const tickerData = data[0];
-      if (!tickerData || tickerData.last === undefined) {
-        console.warn(`Price data not found for ${symbol} in API response:`, tickerData);
-        return null;
-      }
-      
-      return parseFloat(tickerData.last);
     } catch (error) {
-      console.error(`Error fetching price for ${symbol}:`, error);
+      console.error(`Error fetching price for ${symbol} from ${dataSource}:`, error);
       return null;
     }
   }
@@ -409,7 +472,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      const pricePromises = activeCoins.map(coin => fetchPrice(coin.name));
+      const pricePromises = activeCoins.map(coin => fetchPrice(coin.name, coin.dataSource || 'gate'));
       const prices = await Promise.all(pricePromises);
 
       let titlePrices = [];
