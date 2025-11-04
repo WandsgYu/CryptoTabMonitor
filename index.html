@@ -69,10 +69,12 @@
           <div class="form-group">
             <label for="refresh-interval">刷新间隔：</label>
             <select id="refresh-interval" class="form-control">
-              <option value="2">2秒</option>
+              <option value="5">5秒</option>
               <option value="20" selected>20秒</option>
               <option value="60">60秒</option>
+              <option value="custom">自定义</option>
             </select>
+            <input type="number" id="refresh-interval-custom" class="form-control" placeholder="自定义秒数" min="1" style="display: none; margin-top: 8px;">
           </div>
           <hr class="form-divider">
 
