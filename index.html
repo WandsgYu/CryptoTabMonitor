@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loading Price...</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+    <div class="footer"></div>
+    <div class="container">
+      <div class="box" id="btc">
+        <h1 id="btc-price">Loading...</h1>
+        <h2>BTC</h2>
+      </div>
+      <div class="box" id="eth">
+        <h1 id="eth-price">Loading...</h1>
+        <h2>ETH</h2>
+      </div>
+      <div class="box" id="bnb">
+        <h1 id="bnb-price">Loading...</h1>
+        <h2>BNB</h2>
+      </div>
+      <div class="box" id="BGB">
+        <h1 id="BGB-price">Loading...</h1>
+        <h2>BGB</h2>
+      </div>
+    </div>
+
+    <!-- 新增：日期和时间显示 -->
+    <div class="date-time date" id="current-date"></div>
+    <div class="date-time time" id="current-time"></div>
+    <button id="big-mode-button" class="control-button big-mode-btn">Big</button>
+    <button id="exit-big-mode-button" class="control-button exit-big-mode-btn">退出Big Mode</button>
+
+    <!-- 设置按钮 -->
+    <button id="settings-button" class="control-button settings-btn">设置</button>
+
+    <!-- 配置模态框 -->
+    <div id="settings-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>页面配置</h2>
+          <span id="close-settings-modal" class="close-button">&times;</span>
+        </div>
+
+        <div class="modal-body">
+          <!-- 数量配置 -->
+          <div class="form-group">
+            <label for="display-count">显示数量：</label>
+            <select id="display-count" class="form-control">
+              <option value="1">1</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+          <hr class="form-divider">
+
+          <!-- 币种设置 -->
+          <h3 class="section-title">币种设置</h3>
+          <div id="coin-settings-container">
+            <!-- 币种条目将在这里动态添加 -->
+          </div>
+          <button id="add-coin-button" class="btn btn-success">添加币种</button>
+          
+          <hr class="form-divider">
+
+          <!-- 刷新间隔配置 -->
+          <div class="form-group">
+            <label for="refresh-interval">刷新间隔：</label>
+            <select id="refresh-interval" class="form-control">
+              <option value="2">2秒</option>
+              <option value="20" selected>20秒</option>
+              <option value="60">60秒</option>
+            </select>
+          </div>
+          <hr class="form-divider">
+
+          <!-- 字号配置 -->
+          <div class="form-group">
+              <label for="price-font-size">价格字号 (px)：</label>
+              <input type="number" id="price-font-size" value="130" min="10" max="200" step="1" class="form-control">
+              
+              <label for="big-mode-font-size">Big Mode 字号 (px)：</label>
+              <input type="number" id="big-mode-font-size" value="222" min="20" max="400" step="1" class="form-control">
+              <small class="form-help">输入数字，单位为像素(px)</small>
+          </div>
+        </div> 
+
+        <div class="modal-footer">
+            <button id="save-settings-button" class="btn btn-primary">保存配置</button>
+            <button id="reset-settings-button" class="btn btn-secondary">恢复默认</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+    <!-- Code injected by live-server -->
+    <script>
+      // <![CDATA[  <-- For SVG support
+      if ("WebSocket" in window) {
+        (function () {
+          function refreshCSS() {
+            var sheets = [].slice.call(document.getElementsByTagName("link"));
+            var head = document.getElementsByTagName("head")[0];
+            for (var i = 0; i < sheets.length; ++i) {
+              var elem = sheets[i];
+              var parent = elem.parentElement || head;
+              parent.removeChild(elem);
+              var rel = elem.rel;
+              if (
+                (elem.href && typeof rel != "string") ||
+                rel.length == 0 ||
+                rel.toLowerCase() == "stylesheet"
+              ) {
+                var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, "");
+                elem.href =
+                  url +
+                  (url.indexOf("?") >= 0 ? "&" : "?") +
+                  "_cacheOverride=" +
+                  new Date().valueOf();
+              }
+              parent.appendChild(elem);
+            }
+          }
+          var protocol =
+            window.location.protocol === "http:" ? "ws://" : "wss://";
+          var address =
+            protocol + window.location.host + window.location.pathname + "/ws";
+          var socket = new WebSocket(address);
+          socket.onmessage = function (msg) {
+            if (msg.data == "reload") window.location.reload();
+            else if (msg.data == "refreshcss") refreshCSS();
+          };
+          if (
+            sessionStorage &&
+            !sessionStorage.getItem("IsThisFirstTime_Log_From_LiveServer")
+          ) {
+            console.log("Live reload enabled.");
+            sessionStorage.setItem("IsThisFirstTime_Log_From_LiveServer", true);
+          }
+        })();
+      } else {
+        console.error(
+          "Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading."
+        );
+      }
+      // ]]>
+    </script>
+  </body>
+</html>
