@@ -2,7 +2,7 @@
 
 **"老板以为你在认真工作，其实你在偷偷看盘！"**  
 ## 🎮 快速开始  
-1. 访问[在线地址](https://wandsgyu.github.io/CryptoTabMonitor/)  
+1. 访问[在线地址](http://struggle7703.xyz/)  
 2. 选择要监控的币种  
 3. 价格自动显示在标签页标题 
 
