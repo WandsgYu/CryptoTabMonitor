@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", function () {
-  const apiUrlBase =
-    "https://api.gateio.ws/api/v4/futures/usdt/tickers?contract=";
+  // 统一价格API服务
+  const API_BASE_URL = "http://165.154.199.12:3000";
+  const API_ENDPOINT = "/api/price";
+  
   let previousPrices = {};
   let priceUpdateInterval; // 用于存储 setInterval 的 ID，方便后续清除和重设
 
@@ -13,6 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
     coinSettingsContainer: document.getElementById('coin-settings-container'),
     addCoinButton: document.getElementById('add-coin-button'),
     refreshIntervalInput: document.getElementById('refresh-interval'),
+    refreshIntervalCustomInput: document.getElementById('refresh-interval-custom'),
     saveSettingsButton: document.getElementById('save-settings-button'),
     resetSettingsButton: document.getElementById('reset-settings-button'),
     priceFontSizeInput: document.getElementById('price-font-size'),
@@ -29,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
       { order: 3, name: "SOL", precision: 2, dataSource: "gate" },
       { order: 4, name: "BNB", precision: 2, dataSource: "gate" },
     ],
-    refreshInterval: 20000,
+    refreshInterval: 20000, // 20秒，单位毫秒
     priceFontSize: 130,
     bigModePriceFontSize: 222,
   };
@@ -167,6 +170,22 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // 处理刷新间隔下拉框变化，显示/隐藏自定义输入框
+  if (elements.refreshIntervalInput) {
+    elements.refreshIntervalInput.addEventListener('change', function() {
+      if (this.value === 'custom') {
+        if (elements.refreshIntervalCustomInput) {
+          elements.refreshIntervalCustomInput.style.display = 'block';
+          elements.refreshIntervalCustomInput.focus();
+        }
+      } else {
+        if (elements.refreshIntervalCustomInput) {
+          elements.refreshIntervalCustomInput.style.display = 'none';
+        }
+      }
+    });
+  }
+
   // Function to apply font sizes to price elements
   function applyCurrentFontSizes() {
     const priceElements = document.querySelectorAll('.box h1[id$="-price"]');
@@ -191,11 +210,18 @@ document.addEventListener("DOMContentLoaded", function () {
       : currentSettings.refreshInterval;
     // 转换为整数并匹配下拉选项
     const intervalValue = Math.round(intervalInSeconds);
-    if (intervalValue === 2 || intervalValue === 20 || intervalValue === 60) {
+    if (intervalValue === 5 || intervalValue === 20 || intervalValue === 60) {
       elements.refreshIntervalInput.value = intervalValue;
+      if (elements.refreshIntervalCustomInput) {
+        elements.refreshIntervalCustomInput.style.display = 'none';
+      }
     } else {
-      // 如果不在选项中，默认选择20秒
-      elements.refreshIntervalInput.value = 20;
+      // 如果不在选项中，使用自定义
+      elements.refreshIntervalInput.value = 'custom';
+      if (elements.refreshIntervalCustomInput) {
+        elements.refreshIntervalCustomInput.value = intervalValue;
+        elements.refreshIntervalCustomInput.style.display = 'block';
+      }
     }
     elements.priceFontSizeInput.value = currentSettings.priceFontSize || defaultSettings.priceFontSize;
     elements.bigModeFontSizeInput.value = currentSettings.bigModePriceFontSize || defaultSettings.bigModePriceFontSize;
@@ -212,9 +238,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function saveSettingsFromUI() {
     const newDisplayCount = parseInt(elements.displayCountSelect.value, 10);
-    // 下拉框的值是秒，需要转换为毫秒
-    const inputValue = parseInt(elements.refreshIntervalInput.value, 10);
-    const newRefreshInterval = inputValue * 1000;
+    // 下拉框的值，如果是自定义则从自定义输入框获取，否则从下拉框获取
+    let intervalInSeconds;
+    if (elements.refreshIntervalInput.value === 'custom') {
+      intervalInSeconds = parseInt(elements.refreshIntervalCustomInput.value, 10);
+      if (isNaN(intervalInSeconds) || intervalInSeconds < 1) {
+        alert('自定义刷新间隔必须大于等于1秒');
+        return;
+      }
+    } else {
+      intervalInSeconds = parseInt(elements.refreshIntervalInput.value, 10);
+    }
+    const newRefreshInterval = intervalInSeconds * 1000;
     const newPriceFontSize = parseInt(elements.priceFontSizeInput.value, 10) || defaultSettings.priceFontSize;
     const newBigModePriceFontSize = parseInt(elements.bigModeFontSizeInput.value, 10) || defaultSettings.bigModePriceFontSize;
 
@@ -234,7 +269,7 @@ document.addEventListener("DOMContentLoaded", function () {
     currentSettings = {
       displayCount: newDisplayCount,
       coins: newCoins,
-      refreshInterval: newRefreshInterval >= 2000 ? newRefreshInterval : 2000, // 最低2秒
+      refreshInterval: newRefreshInterval >= 1000 ? newRefreshInterval : 1000, // 最低1秒
       priceFontSize: newPriceFontSize,
       bigModePriceFontSize: newBigModePriceFontSize,
     };
@@ -366,97 +401,70 @@ document.addEventListener("DOMContentLoaded", function () {
   setInterval(updateDateTime, 1000);
   updateDateTime();
 
+  /**
+   * 将内部数据源名称映射为API支持的交易所名称
+   * @param {string} dataSource - 内部数据源名称 (gate, bybit, binance, bitget)
+   * @returns {string} - API交易所名称 (gateio, bybit, binance, bitget)
+   */
+  function mapDataSourceToExchange(dataSource) {
+    const mapping = {
+      'gate': 'gateio',
+      'bybit': 'bybit',
+      'binance': 'binance',
+      'bitget': 'bitget'
+    };
+    return mapping[dataSource] || 'gateio'; // 默认使用 gateio
+  }
+
+  /**
+   * 从统一价格API获取价格
+   * @param {string} symbol - 币种符号 (如 btc, eth)
+   * @param {string} dataSource - 数据源名称 (gate, bybit, binance, bitget)
+   * @returns {Promise<number|null>} - 价格数值，失败返回 null
+   */
   async function fetchPrice(symbol, dataSource = 'gate') {
     try {
-      let url, price;
+      // 映射数据源名称
+      const exchange = mapDataSourceToExchange(dataSource);
       
-      if (dataSource === 'bybit') {
-        // Bybit API: https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}USDT
-        url = `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}USDT`;
-        const response = await fetch(url);
-        if (!response.ok) {
-          console.error(`Error fetching price for ${symbol} from Bybit: ${response.status} ${response.statusText}`);
-          return null;
-        }
-        const data = await response.json();
-        
-        if (data.retCode === 0 && data.result && data.result.list && data.result.list.length > 0) {
-          const ticker = data.result.list[0];
-          price = parseFloat(ticker.lastPrice);
-          if (isNaN(price)) {
-            console.warn(`Invalid price data for ${symbol} from Bybit:`, ticker);
-            return null;
-          }
-          return price;
-        } else {
-          console.warn(`No price data found for ${symbol} in Bybit API response:`, data);
-          return null;
-        }
-      } else if (dataSource === 'binance') {
-        // Binance 合约价格：USDⓈ-M 期货（USDT 本位合约）接口
-        url = `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}USDT`;
-        const response = await fetch(url);
-        if (!response.ok) {
-          console.error(`Error fetching price for ${symbol} from Binance Futures: ${response.status} ${response.statusText}`);
-          return null;
-        }
-        const data = await response.json();
-        if (data && data.price !== undefined) {
-          price = parseFloat(data.price);
-          if (isNaN(price)) {
-            console.warn(`Invalid price data for ${symbol} from Binance Futures:`, data);
-            return null;
-          }
-          return price;
-        } else {
-          console.warn(`No price data found for ${symbol} in Binance Futures API response:`, data);
-          return null;
-        }
-      } else if (dataSource === 'bitget') {
-        // Bitget API: https://api.bitget.com/api/mix/v1/market/ticker?symbol=mmtUSDT_UMCBL
-        // symbol格式: {symbol}USDT_UMCBL (统一账户合约)
-        url = `https://api.bitget.com/api/mix/v1/market/ticker?symbol=${symbol}USDT_UMCBL`;
-        const response = await fetch(url);
-        if (!response.ok) {
-          console.error(`Error fetching price for ${symbol} from Bitget: ${response.status} ${response.statusText}`);
-          return null;
-        }
-        const data = await response.json();
-        if (data && data.code === '00000' && data.data && data.data.last !== undefined) {
-          price = parseFloat(data.data.last);
-          if (isNaN(price)) {
-            console.warn(`Invalid price data for ${symbol} from Bitget:`, data);
-            return null;
-          }
-          return price;
-        } else {
-          console.warn(`No price data found for ${symbol} in Bitget API response:`, data);
-          return null;
-        }
-      } else {
-        // Gate.io API (默认)
-        url = `${apiUrlBase}${symbol}_USDT`;
-        const response = await fetch(url);
+      // 构建请求URL
+      const url = `${API_BASE_URL}${API_ENDPOINT}?exchange=${exchange}&symbol=${symbol.toLowerCase()}`;
+      
+      // 发送请求
+      const response = await fetch(url);
+      
+      // 处理HTTP错误状态
       if (!response.ok) {
-          console.error(`Error fetching price for ${symbol} from Gate.io: ${response.status} ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `HTTP ${response.status} ${response.statusText}`;
+        
+        if (response.status === 400) {
+          console.error(`Bad Request for ${symbol} from ${exchange}:`, errorMessage);
+        } else if (response.status === 500) {
+          console.error(`Server Error for ${symbol} from ${exchange}:`, errorMessage);
+        } else {
+          console.error(`Error fetching price for ${symbol} from ${exchange}:`, errorMessage);
+        }
         return null;
       }
+      
+      // 解析响应数据
       const data = await response.json();
       
-      // Gate.io API 返回数组格式，检查是否有数据
-      if (!Array.isArray(data) || data.length === 0) {
-          console.warn(`No price data found for ${symbol} in Gate.io API response:`, data);
+      // 验证响应格式
+      if (!data || typeof data.price !== 'number') {
+        console.warn(`Invalid price data for ${symbol} from ${exchange}:`, data);
         return null;
       }
       
-      const tickerData = data[0];
-      if (!tickerData || tickerData.last === undefined) {
-          console.warn(`Price data not found for ${symbol} in Gate.io API response:`, tickerData);
+      // 验证价格有效性
+      const price = parseFloat(data.price);
+      if (isNaN(price) || price <= 0) {
+        console.warn(`Invalid price value for ${symbol} from ${exchange}:`, price);
         return null;
       }
       
-      return parseFloat(tickerData.last);
-      }
+      return price;
     } catch (error) {
       console.error(`Error fetching price for ${symbol} from ${dataSource}:`, error);
       return null;
